@@ -1,6 +1,7 @@
 from __future__ import print_function
 import argparse
 import os
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -101,11 +102,36 @@ def accuracy(output, target, topk=(1,)):
     return res
 
 
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
 def train(train_loader, model, criterion, optimizer, epoch):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+
     model.train()
     train_len = len(train_loader)
     epoch_acc = 0
+    end = time.time()
+
     for batch_idx, (data, target) in enumerate(train_loader):
+        data_time.update(time.time() - end)
+
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
@@ -116,11 +142,20 @@ def train(train_loader, model, criterion, optimizer, epoch):
         acc = accuracy(output, target)
         loss.backward()
         optimizer.step()
+
+        batch_time.update(time.time() - end)
+        end = time.time()
+
         epoch_acc += acc[0].data[0]
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.data[0], acc[0].data[0]))
+            print('Train Epoch: {}\t[{}/{} ({:.0f}%)]\t'
+                  'Loss: {:.6f}\tAccuracy: {:.6f}\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})'.format(
+                  epoch, batch_idx * len(data), len(train_loader.dataset),
+                  100. * batch_idx / len(train_loader),
+                  loss.data[0], acc[0].data[0],
+                  batch_time=batch_time, data_time=data_time))
     return epoch_acc
 
 
