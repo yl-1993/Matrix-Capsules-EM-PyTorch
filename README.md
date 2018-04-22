@@ -12,7 +12,7 @@ python train.py
 ## MNIST experiments
 
 The experiments are conducted on TitanXP.
-Specific setting is `lr=0.001`, `batch_size=128`, `weight_decay=0`, Adam optimizer, without data augmentation.
+Specific setting is `lr=0.01`, `batch_size=128`, `weight_decay=0`, Adam optimizer, without data augmentation.
 The paper does not mention the specific scheduler for `inverse_temperature`, it is fixed to `0.001` in our setting.
 As our experiments shown, `\lambda` between `1e-2` and `1e-4` achieves similar results. A large lambda may prevent the model from convergence.
 
