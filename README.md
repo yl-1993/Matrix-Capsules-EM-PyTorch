@@ -28,6 +28,9 @@ Following is the result after 30 epochs training:
 | A=64, B=8, C=D=16 | 2 | Y | Cross-Ent | Y | 97.8 |
 | A=B=C=D=32        | 2 | Y | Spread    | Y | 99.3 |
 
+The training time of `A=64, B=8, C=D=16` for a 128 batch is around `1.05s`.
+The training time of `A=B=C=D=32` for a 32 batch is around `1.45s`.
+
 ## smallNORB experiments
 
 ```bash
