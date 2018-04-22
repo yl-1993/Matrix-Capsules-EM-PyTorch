@@ -20,12 +20,13 @@ Following is the result after 30 epochs training:
 
 | Arch | Iters | Coord Add | Loss | BN | Test Accuracy |
 | ---- |:-----:|:---------:|:----:|:--:|:-------------:|
-| A=64, B=8, C=D=16 | 1 | Y | Spread    | Y | 97.5 |
+| A=64, B=8, C=D=16 | 1 | Y | Spread    | Y | 97.1 |
 | A=64, B=8, C=D=16 | 2 | Y | Spread    | Y | 99.1 |
-| A=64, B=8, C=D=16 | 3 | Y | Spread    | Y | 97.1 |
+| A=64, B=8, C=D=16 | 3 | Y | Spread    | Y | 97.5 |
 | A=64, B=8, C=D=16 | 2 | N | Spread    | Y | 99.0 |
 | A=64, B=8, C=D=16 | 2 | Y | Spread    | N | 98.9 |
 | A=64, B=8, C=D=16 | 2 | Y | Cross-Ent | Y | 97.8 |
+| A=B=C=D=32        | 2 | Y | Spread    | Y | 99.3 |
 
 ## smallNORB experiments
 
@@ -41,8 +42,9 @@ Following is the result after 50 epochs training:
 | Arch | Iters | Coord Add | Loss | BN | Test Accuracy |
 | ---- |:-----:|:---------:|:----:|:--:|:-------------:|
 | A=64, B=8, C=D=16 | 1 | Y | Spread    | Y | 74.81 |
-| A=64, B=8, C=D=16 | 2 | Y | Spread    | Y | 88.28 |
+| A=64, B=8, C=D=16 | 2 | Y | Spread    | Y | 89.52 |
 | A=64, B=8, C=D=16 | 3 | Y | Spread    | Y | 82.55 |
+| A=B=C=D=32        | 2 | Y | Spread    | Y | 90.03 |
 
 A weird thing is that large batch size seems to result in poor result.
 
