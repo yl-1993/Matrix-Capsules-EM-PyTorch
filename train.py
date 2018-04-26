@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.autograd import Variable
 
 from model import capsules
 from loss import SpreadLoss
@@ -120,7 +119,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, device):
     batch_time = AverageMeter()
     data_time = AverageMeter()
 
@@ -132,9 +131,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for batch_idx, (data, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
 
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
         r = (1.*batch_idx + (epoch-1)*train_len) / (args.epochs*train_len)
@@ -146,7 +143,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        epoch_acc += acc[0].data[0]
+        epoch_acc += acc[0].item()
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {}\t[{}/{} ({:.0f}%)]\t'
                   'Loss: {:.6f}\tAccuracy: {:.6f}\t'
@@ -154,7 +151,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})'.format(
                   epoch, batch_idx * len(data), len(train_loader.dataset),
                   100. * batch_idx / len(train_loader),
-                  loss.data[0], acc[0].data[0],
+                  loss.item(), acc[0].item(),
                   batch_time=batch_time, data_time=data_time))
     return epoch_acc
 
@@ -167,18 +164,17 @@ def snapshot(model, folder, epoch):
     torch.save(model.state_dict(), path)
 
 
-def test(test_loader, model, criterion):
+def test(test_loader, model, criterion, device):
     model.eval()
     test_loss = 0
     acc = 0
     test_len = len(test_loader)
-    for data, target in test_loader:
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
-        output = model(data)
-        test_loss += criterion(output, target, r=1).data[0]
-        acc += accuracy(output, target)[0].data[0]
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            output = model(data)
+            test_loss += criterion(output, target, r=1).item()
+            acc += accuracy(output, target)[0].item()
 
     test_loss /= test_len
     acc /= test_len
@@ -195,6 +191,8 @@ def main():
     torch.manual_seed(args.seed)
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
+
+    device = torch.device("cuda" if args.cuda else "cpu")
     
     # datasets
     num_class, train_loader, test_loader = get_setting(args)
@@ -202,23 +200,21 @@ def main():
     # model
     A, B, C, D = 64, 8, 16, 16
     # A, B, C, D = 32, 32, 32, 32
-    model = capsules(A=A, B=B, C=C, D=D,
-                     E=num_class, iters=args.em_iters)
-    if args.cuda:
-        model.cuda()
+    model = capsules(A=A, B=B, C=C, D=D, E=num_class,
+                     iters=args.em_iters).to(device)
 
     criterion = SpreadLoss(num_class=num_class, m_min=0.2, m_max=0.9)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=1)
 
-    best_acc = test(test_loader, model, criterion)
+    best_acc = test(test_loader, model, criterion, device)
     for epoch in range(1, args.epochs + 1):
-        acc = train(train_loader, model, criterion, optimizer, epoch)
+        acc = train(train_loader, model, criterion, optimizer, epoch, device)
         acc /= len(train_loader)
         scheduler.step(acc)
         if epoch % args.test_intvl == 0:
-            best_acc = max(best_acc, test(test_loader, model, criterion))
-    best_acc = max(best_acc, test(test_loader, model, criterion))
+            best_acc = max(best_acc, test(test_loader, model, criterion, device))
+    best_acc = max(best_acc, test(test_loader, model, criterion, device))
     print('best test accuracy: {:.6f}'.format(best_acc))
 
     snapshot(model, args.snapshot_folder, args.epochs)

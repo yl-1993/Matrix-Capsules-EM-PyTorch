@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 from torch.nn.modules.loss import _Loss
 
 class SpreadLoss(_Loss):
@@ -15,10 +14,12 @@ class SpreadLoss(_Loss):
         assert E == self.num_class
         margin = self.m_min + (self.m_max - self.m_min)*r
 
-        at = torch.cat([x[i][lb] for i, lb in enumerate(target)])
+        at = torch.cuda.FloatTensor(b).fill_(0)
+        for i, lb in enumerate(target):
+            at[i] = x[i][lb]
         at = at.view(b, 1).repeat(1, E)
 
-        zeros = Variable(torch.cuda.FloatTensor(x.shape).fill_(0))
+        zeros = x.new_zeros(x.shape)
         loss = torch.max(margin - (at - x), zeros)
         loss = loss**2
         loss = loss.sum() / b - margin**2

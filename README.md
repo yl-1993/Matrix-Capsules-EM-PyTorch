@@ -9,6 +9,12 @@ A PyTorch implementation of [Matrix Capsules with EM Routing](https://openreview
 python train.py
 ```
 
+Note that master is upgraded to be compatiable with PyTorch `0.4.0`.
+If you want to use the old version of PyTorch, please
+```bash
+git checkout 0.3.1.post3
+```
+
 ## MNIST experiments
 
 The experiments are conducted on TitanXP.
