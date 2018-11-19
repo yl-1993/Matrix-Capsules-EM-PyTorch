@@ -196,8 +196,8 @@ class ConvCaps(nn.Module):
         assert c == B*(psize+1)
         oh = ow = int((h - K + 1) / stride)
         idxs = [[(h_idx + k_idx) \
-                for h_idx in range(0, h - K + 1, stride)] \
-                for k_idx in range(0, K)]
+                for k_idx in range(0, K)] \
+                for h_idx in range(0, h - K + 1, stride)]
         x = x[:, idxs, :, :]
         x = x[:, :, :, idxs, :]
         x = x.permute(0, 1, 3, 2, 4, 5).contiguous()
