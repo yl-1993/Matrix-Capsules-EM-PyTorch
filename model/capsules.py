@@ -36,7 +36,7 @@ class PrimaryCaps(nn.Module):
     def forward(self, x):
         p = self.pose(x)
         a = self.a(x)
-        a = self.sigmoid(a) 
+        a = self.sigmoid(a)
         out = torch.cat([p, a], dim=1)
         out = out.permute(0, 2, 3, 1)
         return out
@@ -234,7 +234,7 @@ class ConvCaps(nn.Module):
         """
         assert h == w
         v = v.view(b, h, w, B, C, psize)
-        coor = 1. * torch.arange(h) / h
+        coor = torch.arange(h, dtype=torch.float32) / h
         coor_h = torch.cuda.FloatTensor(1, h, 1, 1, 1, self.psize).fill_(0.)
         coor_w = torch.cuda.FloatTensor(1, 1, w, 1, 1, self.psize).fill_(0.)
         coor_h[0, :, 0, 0, 0, 0] = coor
@@ -328,15 +328,15 @@ class CapsNet(nn.Module):
         self.conv_caps1 = ConvCaps(B, C, K, P, stride=2, iters=iters)
         self.conv_caps2 = ConvCaps(C, D, K, P, stride=1, iters=iters)
         self.class_caps = ConvCaps(D, E, 1, P, stride=1, iters=iters,
-                                        coor_add=True, w_shared=True) 
-        
+                                        coor_add=True, w_shared=True)
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
         x = self.primary_caps(x)
-        x = self.conv_caps1(x) 
-        x = self.conv_caps2(x) 
+        x = self.conv_caps1(x)
+        x = self.conv_caps2(x)
         x = self.class_caps(x)
         return x
 
