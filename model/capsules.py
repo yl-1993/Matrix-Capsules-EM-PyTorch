@@ -194,7 +194,7 @@ class ConvCaps(nn.Module):
         b, h, w, c = x.shape
         assert h == w
         assert c == B*(psize+1)
-        oh = ow = int((h - K + 1) / stride)
+        oh = ow = int(((h - K )/stride)+ 1) # moein - changed from: oh = ow = int((h - K + 1) / stride)
         idxs = [[(h_idx + k_idx) \
                 for k_idx in range(0, K)] \
                 for h_idx in range(0, h - K + 1, stride)]
