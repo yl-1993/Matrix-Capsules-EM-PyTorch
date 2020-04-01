@@ -22,10 +22,10 @@ parser.add_argument('--test-intvl', type=int, default=1, metavar='N',
                     help='test intvl (default: 1)')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                    help='learning rate (default: 0.01)')
-parser.add_argument('--weight-decay', type=float, default=0, metavar='WD',
-                    help='weight decay (default: 0)')
+parser.add_argument('--lr', type=float, default=3e-3, metavar='LR', 
+                    help='learning rate (default: 0.01)') # moein - according to openreview
+parser.add_argument('--weight-decay', type=float, default=2e-7, metavar='WD',
+                    help='weight decay (default: 0)') # moein - according to openreview
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -100,6 +100,18 @@ def accuracy(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
+def exp_lr_decay(optimizer, global_step, init_lr = 3e-3, decay_steps = 20000,
+                                        decay_rate = 0.96, lr_clip = 3e-3 ,staircase=False):
+    
+    ''' decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)  '''
+    
+    if staircase:
+        lr = (init_lr * decay_rate**(global_step // decay_steps)) 
+    else:
+        lr = (init_lr * decay_rate**(global_step / decay_steps)) 
+    
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -137,6 +149,11 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
         r = (1.*batch_idx + (epoch-1)*train_len) / (args.epochs*train_len)
         loss = criterion(output, target, r)
         acc = accuracy(output, target)
+        
+        global_step = (batch_idx+1) + (epoch - 1) * len(train_loader) 
+        exp_lr_decay(optimizer = optimizer, global_step = global_step) # moein - change the learning rate exponentially
+        
+        
         loss.backward()
         optimizer.step()
 
@@ -205,13 +222,11 @@ def main():
 
     criterion = SpreadLoss(num_class=num_class, m_min=0.2, m_max=0.9)
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=1)
 
     best_acc = test(test_loader, model, criterion, device)
     for epoch in range(1, args.epochs + 1):
         acc = train(train_loader, model, criterion, optimizer, epoch, device)
         acc /= len(train_loader)
-        scheduler.step(acc)
         if epoch % args.test_intvl == 0:
             best_acc = max(best_acc, test(test_loader, model, criterion, device))
     best_acc = max(best_acc, test(test_loader, model, criterion, device))
